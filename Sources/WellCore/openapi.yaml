@@ -1,0 +1,796 @@
+openapi: '3.0.4'
+info:
+  title: MangaDex
+  version: 5.12.0
+  description: >
+    An ad-free manga reader offering high-quality images!
+
+servers:
+  - url: https://api.mangadex.org
+
+paths:
+  /manga:
+    get:
+      summary: Manga list
+      description: Search a list of Manga.
+      operationId: queryManga
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 100
+            default: 10
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: title
+          in: query
+          schema:
+            type: string
+        - name: authorOrArtist
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: authors[]
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+              format: uuid
+        - name: artists[]
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+              format: uuid
+        - name: year
+          in: query
+          schema:
+            type: string
+        - name: includedTags[]
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+              format: uuid
+        - name: includedTagsMode
+          in: query
+          schema:
+            type: string
+            enum: [AND, OR]
+            default: AND
+        - name: excludedTags[]
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+              format: uuid
+        - name: excludedTagsMode
+          in: query
+          schema:
+            type: string
+            enum: [AND, OR]
+            default: OR
+        - name: status[]
+          in: query
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/Status'
+        - name: originalLanguage[]
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+        - name: excludedOriginalLanguage[]
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+        - name: availableTranslatedLanguage[]
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+        - name: publicationDemographic[]
+          in: query
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/PublicationDemographic'
+        - name: ids[]
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+              format: uuid
+        - name: contentRating[]
+          in: query
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/ContentRating'
+            default: ["safe","suggestive","erotica"]
+        - name: createdAtSince
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: updatedAtSince
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: includes[]
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+              enum: [manga, cover_art, author, artist, tag, creator]
+        - name: hasAvailableChapters
+          in: query
+          schema:
+            type: string
+            enum: ["0","1","true","false"]
+        - name: hasUnavailableChapters
+          in: query
+          schema:
+            type: string
+            enum: ["0","1"]
+        - name: group
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Manga list retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MangaQuery'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /manga/{id}:
+    get:
+      summary: Get Manga
+      description: Get Manga
+      operationId: getManga
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The Manga ID
+          schema:
+            type: string
+            format: uuid
+        - name: includes[]
+          in: query
+          required: false
+          description: Reference expansion options for manga entities or lists
+          schema:
+            type: array
+            items:
+              type: string
+              enum: [manga, cover_art, author, artist, tag, creator]
+      responses:
+        '200':
+          description: Manga retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MangaResponse'
+        '403':
+          description: Forbidden — you do not have permission to access this resource.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: "No manga content found"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /manga/{id}/feed:
+    get:
+      summary: Get Manga Feed
+      description: Retrieve a paginated list of chapters belonging to the specified manga.
+      operationId: getMangaFeed
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Manga ID
+          schema:
+            type: string
+            format: uuid
+
+        - name: limit
+          in: query
+          required: false
+          description: Maximum number of results per page (1–500).
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+            default: 100
+
+        - name: offset
+          in: query
+          required: false
+          description: Number of items to skip before starting to collect the result set.
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+
+        - name: translatedLanguage[]
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+#              pattern: '^[a-zA-Z\-]{2,5}$'
+
+        - name: originalLanguage[]
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+#              pattern: '^[a-zA-Z\-]{2,5}$'
+
+        - name: excludedOriginalLanguage[]
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+#              pattern: '^[a-zA-Z\-]{2,5}$'
+
+        - name: contentRating[]
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+              enum: ["safe", "suggestive", "erotica", "pornographic"]
+            default: ["safe", "suggestive", "erotica"]
+
+        - name: excludedGroups[]
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+              format: uuid
+
+        - name: excludedUploaders[]
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+              format: uuid
+
+        - name: includeFutureUpdates
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: ["0", "1"]
+            default: "1"
+
+        - name: createdAtSince
+          in: query
+          required: false
+          schema:
+            type: string
+#            pattern: '^\d{4}-[0-1]\d-([0-2]\d|3[0-1])T([0-1]\d|2[0-3]):[0-5]\d:[0-5]\dZ$'
+
+        - name: updatedAtSince
+          in: query
+          required: false
+          schema:
+            type: string
+#            pattern: '^\d{4}-[0-1]\d-([0-2]\d|3[0-1])T([0-1]\d|2[0-3]):[0-5]\d:[0-5]\dZ$'
+
+        - name: publishAtSince
+          in: query
+          required: false
+          schema:
+            type: string
+#            pattern: '^\d{4}-[0-1]\d-([0-2]\d|3[0-1])T([0-1]\d|2[0-3]):[0-5]\d:[0-5]\dZ$'
+
+        - name: order
+          in: query
+          required: false
+          schema:
+            type: object
+
+        - name: includes[]
+          in: query
+          required: false
+          description: Related entities to include.
+          schema:
+            type: array
+            items:
+              type: string
+              enum: ["manga", "scanlation_group", "user"]
+
+        - name: includeEmptyPages
+          in: query
+          required: false
+          schema:
+            type: integer
+            enum: [0, 1]
+
+        - name: includeFuturePublishAt
+          in: query
+          required: false
+          schema:
+            type: integer
+            enum: [0, 1]
+
+        - name: includeExternalUrl
+          in: query
+          required: false
+          schema:
+            type: integer
+            enum: [0, 1]
+
+        - name: includeUnavailable
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: ["0", "1"]
+            default: "0"
+
+      responses:
+        '200':
+          description: Manga feed retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChapterListResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /at-home/server/{chapterId}:
+    get:
+      summary: Get MangaDex@Home server URL
+      description: >
+        Retrieves the base URL and file list for serving chapter images through the MangaDex@Home network.
+        The returned base URL is valid only for the requested chapter and expires after 15 minutes.
+      operationId: getAtHomeServer
+      parameters:
+        - name: chapterId
+          in: path
+          required: true
+          description: Chapter ID
+          schema:
+            type: string
+            format: uuid
+
+        - name: forcePort443
+          in: query
+          required: false
+          description: >
+            If true, forces selection of a MangaDex@Home server that uses the standard HTTPS port 443.
+            Useful for networks that block non-standard ports.
+          schema:
+            type: boolean
+            default: false
+
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - result
+                  - baseUrl
+                  - chapter
+                properties:
+                  result:
+                    type: string
+                    example: ok
+                  baseUrl:
+                    type: string
+                    description: >
+                      The base URL to construct final image URLs from.
+                      Valid for this chapter only and expires after 15 minutes.
+                  chapter:
+                    type: object
+                    required:
+                      - hash
+                      - data
+                      - dataSaver
+                    properties:
+                      hash:
+                        type: string
+                      data:
+                        type: array
+                        description: List of image filenames (original quality)
+                        items:
+                          type: string
+                      dataSaver:
+                        type: array
+                        description: List of image filenames (compressed data-saver version)
+                        items:
+                          type: string
+
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - result
+                  - errors
+                properties:
+                  result:
+                    type: string
+                    example: error
+                  errors:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Error"
+
+components:
+  schemas:
+    Result:
+      type: string
+      enum: [ok, error]
+
+    PublicationDemographic:
+      type: string
+      enum: [shounen, shoujo, josei, seinen, none]
+
+    Status:
+      type: string
+      enum: [ongoing, completed, hiatus, cancelled]
+
+    ContentRating:
+      type: string
+      enum: [safe, suggestive, erotica, pornographic]
+
+    MangaQuery:
+      type: object
+      required: [result, response, data, limit, offset, total]
+      properties:
+        result:
+          $ref: '#/components/schemas/Result'
+          default: ok
+        response:
+          type: string
+          default: collection
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Manga'
+        limit:
+          type: integer
+        offset:
+          type: integer
+        total:
+          type: integer
+
+    Manga:
+      type: object
+      required: [id,type,attributes,relationships]
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          example: manga
+        attributes:
+          $ref: '#/components/schemas/MangaAttributes'
+        relationships:
+          type: array
+          items:
+            $ref: '#/components/schemas/Relationship'
+
+    MangaAttributes:
+      type: object
+      required:
+        - title
+        - description
+        - status
+        - contentRating
+        - version
+        - createdAt
+        - updatedAt
+      properties:
+        title:
+          $ref: '#/components/schemas/LocalizedString'
+        altTitles:
+          type: array
+          items:
+            $ref: '#/components/schemas/LocalizedString'
+        description:
+          $ref: '#/components/schemas/LocalizedString'
+        isLocked:
+          type: boolean
+        links:
+          type: object
+          additionalProperties:
+            type: string
+        originalLanguage:
+          type: string
+        lastVolume:
+          type: string
+        lastChapter:
+          type: string
+        publicationDemographic:
+          $ref: '#/components/schemas/PublicationDemographic'
+        status:
+          $ref: '#/components/schemas/Status'
+        year:
+          type: integer
+        contentRating:
+          $ref: '#/components/schemas/ContentRating'
+        chapterNumbersResetOnNewVolume:
+          type: boolean
+        availableTranslatedLanguages:
+          type: array
+          items:
+            type: string
+        latestUploadedChapter:
+          type: string
+          format: uuid
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tag'
+        state:
+          type: string
+          enum: [draft, submitted, published, rejected]
+        version:
+          type: integer
+          minimum: 1
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+
+    Tag:
+      type: object
+      required: [id, type, attributes]
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          example: tag
+        attributes:
+          $ref: '#/components/schemas/TagAttributes'
+        relationships:
+          type: array
+          items:
+            $ref: '#/components/schemas/Relationship'
+
+    TagAttributes:
+      type: object
+      properties:
+        name:
+          $ref: '#/components/schemas/LocalizedString'
+        description:
+          $ref: '#/components/schemas/LocalizedString'
+        group:
+          type: string
+          example: content
+        version:
+          type: integer
+
+    Relationship:
+      type: object
+      required: [id, type]
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+        related:
+          type: string
+          enum:
+            - monochrome
+            - main_story
+            - adapted_from
+            - based_on
+            - prequel
+            - side_story
+            - doujinshi
+            - same_franchise
+            - shared_universe
+            - sequel
+            - spin_off
+            - alternate_story
+            - alternate_version
+            - preserialization
+            - colored
+            - serialization
+        attributes:
+          type: object
+          nullable: true
+          
+    MangaResponse:
+      type: object
+      required: [result, response, data]
+      properties:
+        result:
+          $ref: '#/components/schemas/Result'
+          default: ok
+        response:
+          type: string
+          default: entity
+        data:
+          $ref: '#/components/schemas/Manga'
+            
+    ChapterListResponse:
+      type: object
+      required:
+        - result
+        - response
+        - data
+        - limit
+        - offset
+        - total
+      properties:
+        result:
+          $ref: '#/components/schemas/Result'
+          default: ok
+        response:
+          type: string
+          default: collection
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Chapter'
+        limit:
+          type: integer
+        offset:
+          type: integer
+        total:
+          type: integer
+
+    Chapter:
+      type: object
+      required:
+        - id
+        - type
+        - attributes
+        - relationships
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: ["chapter"]
+        attributes:
+          $ref: '#/components/schemas/ChapterAttributes'
+        relationships:
+          type: array
+          items:
+            $ref: '#/components/schemas/Relationship'
+
+    ChapterAttributes:
+      type: object
+      required:
+        - pages
+        - translatedLanguage
+        - version
+        - createdAt
+        - updatedAt
+        - publishAt
+        - readableAt
+        - isUnavailable
+      properties:
+        title:
+          type: string
+          nullable: true
+          maxLength: 255
+        volume:
+          type: string
+          nullable: true
+        chapter:
+          type: string
+          nullable: true
+          maxLength: 8
+        pages:
+          type: integer
+        translatedLanguage:
+          type: string
+          pattern: '^[a-z]{2}(-[a-z]{2})?$'
+        uploader:
+          type: string
+          format: uuid
+        externalUrl:
+          type: string
+          nullable: true
+          maxLength: 512
+          pattern: '^https?://'
+        version:
+          type: integer
+          minimum: 1
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+        publishAt:
+          type: string
+        readableAt:
+          type: string
+        isUnavailable:
+          type: boolean
+          
+    LocalizedString:
+      type: object
+      required: [type]
+      additionalProperties:
+        type: string
+
+    ErrorResponse:
+      type: object
+      required: [result, errors]
+      properties:
+        result:
+          type: string
+          default: error
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/Error'
+
+    Error:
+      type: object
+      required: [id, status, title]
+      properties:
+        id:
+          type: string
+        status:
+          type: integer
+        title:
+          type: string
+        detail:
+          type: string
+        context:
+          type: string
